@@ -17,7 +17,7 @@ H_max = 6000  # Maximum height in m³ (or 0.9 for normalized)
 H_low = 2000  # Lower boundary for no penalty region
 H_high = 4760  # Upper boundary for no penalty region
 deltaH_source = 50  # Gas input per cycle (15 minutes, scaled down from 200 m³/h)
-starting_cost = 50  # Cost to start each generator
+starting_cost = 30  # Cost to start each generator
 generator_capacity = [400, 400, 380]  # Capacities of the three generators in kW
 
 # Power generation per m³ of gas at 100% load
