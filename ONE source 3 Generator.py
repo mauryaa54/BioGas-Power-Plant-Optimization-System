@@ -17,7 +17,7 @@ H_max = 6000  # Maximum height in m³ (or 0.9 for normalized)
 H_low = 2000  # Lower boundary for no penalty region
 H_high = 4760  # Upper boundary for no penalty region
 deltaH_source = 50  # Gas input per cycle (15 minutes, scaled down from 200 m³/h)
-starting_cost = 50  # Cost to start each generator
+starting_cost = 30  # Cost to start each generator
 generator_capacity = [400, 400, 380]  # Capacities of the three generators in kW
 
 # Power generation per m³ of gas at 100% load
@@ -108,7 +108,7 @@ bounds = (lb, ub)
 # Use PSO to minimize the fitness function
 options = {'c1': 1.5, 'c2': 2, 'w': 0.4}
 optimizer = ps.single.GlobalBestPSO(n_particles=1000, dimensions=num_intervals, options=options, bounds=bounds)
-best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=150)
+best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=50)
 
 # Debug: Print shape of optimal_profile
 print(f"Shape of optimal_profile before conversion: {np.shape(optimal_profile)}")
