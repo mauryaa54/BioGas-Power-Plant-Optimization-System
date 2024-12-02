@@ -108,7 +108,7 @@ bounds = (lb, ub)
 # Use PSO to minimize the fitness function
 options = {'c1': 1.5, 'c2': 2, 'w': 0.4}
 optimizer = ps.single.GlobalBestPSO(n_particles=1000, dimensions=num_intervals, options=options, bounds=bounds)  # we can change the number of particles here to num_intervals*2
-best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=100)
+best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=150)
 
 # # Debug: Print shape of optimal_profile
 # print(f"Shape of optimal_profile before conversion: {np.shape(optimal_profile)}")
@@ -199,18 +199,20 @@ else:
     plt.xlabel('Iteration')
     plt.ylabel('Cost')
     plt.grid(True)
+    plt.savefig('Cost_vs_Optimization_Iterations.png')
     plt.show()
     
     # Visualization of Particle Convergence
-    plt.figure(figsize=(12, 8))
-    for pos in optimizer.pos_history:
-        plt.plot(np.mean(pos, axis=1), marker='o', markersize=3, linestyle='-', alpha=0.5)
+    # plt.figure(figsize=(12, 8))
+    # for pos in optimizer.pos_history:
+    #     plt.plot(np.mean(pos, axis=1), marker='o', markersize=3, linestyle='-', alpha=0.5)
     
-    plt.title('Particle Positions Over Iterations')
-    plt.xlabel('Iteration')
-    plt.ylabel('Particle Position (mean)')
-    plt.grid(True)
-    plt.show()
+    # plt.title('Particle Positions Over Iterations')
+    # plt.xlabel('Iteration')
+    # plt.ylabel('Particle Position (mean)')
+    # plt.grid(True)
+    # plt.savefig('Particle_Positions_Over_Iterations.png')
+    # plt.show()
     # # Histogram of Particle Positions
     # plt.figure(figsize=(12, 8))
     # for i in range(0, len(optimizer.pos_history), len(optimizer.pos_history) // 5):
@@ -251,6 +253,7 @@ else:
     plt.xlabel('Iteration')
     plt.ylabel('Particle Spread (Std Dev)')
     plt.grid(True)
+    plt.savefig('Particle_Spread_Over_Iterations.png')
     plt.show()
 
     # Visualization of Height and Total Cost
@@ -258,8 +261,9 @@ else:
     plt.scatter(data['Height'], data['Penalty'], color='red')
     plt.title('Relationship between Height and Penality')
     plt.xlabel('Tank Height (units)')
-    plt.ylabel('Total Cost ($)')
+    plt.ylabel('Penalty')
     plt.grid(True)
+    plt.savefig('Relationship_between_Height_and_Penality.png')
     plt.show()
 
     # Displaying cycle details in tabular format
