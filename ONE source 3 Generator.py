@@ -24,7 +24,7 @@ generator_capacity = [400, 400, 380]  # Capacities of the three generators in kW
 kWh_per_m3 = 1.7  # 1.7 kWh of electricity generated per m³ of gas
 
 # Read CSV file
-data = pd.read_csv('Project_B_Sample_Data.csv')
+data = pd.read_csv('Project_B_Sample_Data_copy.csv')
 
 # Forward fill the initial height across all cycles
 data['Height'] = data['Initial_Height'].ffill()
