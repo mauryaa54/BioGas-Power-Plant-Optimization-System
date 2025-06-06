@@ -1,39 +1,67 @@
-import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle, FancyArrow
+import pandas as pd
+import numpy as np
+from scipy.signal import spectrogram, get_window
+import plotly.graph_objs as go
+import plotly.subplots as sp
 
-# Initialize figure and axis
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.set_xlim(0, 12)
-ax.set_ylim(0, 6)
-ax.axis('off')
+# --- Parameters ---
+fd = 47.5e3         # Drive frequency
+f1 = fd / 2         # 1fd
+f2 = fd             # 2fd
+window_type = 'hann'
 
-# Function to draw labeled rectangles (components)
-def add_component(ax, xy, width, height, label, color='lightblue'):
-    x, y = xy
-    rect = Rectangle((x, y), width, height, edgecolor='black', facecolor=color, lw=1.5)
-    ax.add_patch(rect)
-    ax.text(x + width / 2, y + height / 2, label, ha='center', va='center', fontsize=10, wrap=True)
+# --- Load CSV ---
+df = pd.read_csv("your_file.csv")  # Replace with your filename
+time = df['time'].values
+velocity = df['velocity'].values
 
-# Function to add arrows (connections)
-def add_arrow(ax, start, end, text=None):
-    ax.annotate(text, xy=end, xytext=start, arrowprops=dict(arrowstyle="->", lw=1.5), fontsize=10, ha='center')
+# --- Sampling ---
+dt = np.mean(np.diff(time))  # Time resolution
+fs = 1 / dt                  # Sampling frequency
 
-# Add components
-add_component(ax, (1, 4), 2, 1, "Manure Collection", "lightgreen")
-add_component(ax, (4, 4), 2, 1, "Anaerobic Digestion Tank", "lightblue")
-add_component(ax, (7, 4), 2, 1, "Gas Storage Tank", "orange")
-add_component(ax, (10, 4), 2, 1, "Biogas Engine", "lightyellow")
-add_component(ax, (4, 1), 2, 1, "Digestate Storage", "brown")
+# --- Acceleration (a = dv/dt) ---
+acceleration = np.diff(velocity) / dt
+t_acc = time[:-1]  # Same length as acceleration
 
-# Add arrows to indicate flow
-add_arrow(ax, (3, 4.5), (4, 4.5), "Manure")
-add_arrow(ax, (6, 4.5), (7, 4.5), "Biogas")
-add_arrow(ax, (9, 4.5), (10, 4.5), "Biogas to Engine")
-add_arrow(ax, (5, 4), (5, 2), "By-product")
+# --- FFT of acceleration ---
+n = len(acceleration)
+window = get_window(window_type, n)
+fft_vals = np.fft.fft(acceleration * window)
+fft_freqs = np.fft.fftfreq(n, d=dt)
 
-# Add labels for final energy
-ax.text(11.5, 4.5, "Energy Output", fontsize=10, ha='left', va='center', color='black')
+# Only keep positive frequencies
+fft_freqs = fft_freqs[:n // 2]
+fft_vals = np.abs(fft_vals[:n // 2])
 
-# Display diagram
-plt.title("Simplified Biogas Plant Diagram", fontsize=14)
-plt.show()
+# --- Create Plotly Subplots ---
+fig = sp.make_subplots(rows=3, cols=1, subplot_titles=[
+    "Velocity vs Time",
+    "Acceleration FFT around 1fd (≈23.75kHz)",
+    "Acceleration FFT around 2fd (≈47.5kHz)"
+])
+
+# --- Plot 1: Velocity vs Time ---
+fig.add_trace(go.Scatter(x=time, y=velocity, mode='lines', name='Velocity (m/s)'), row=1, col=1)
+
+# --- Plot 2: FFT near 1fd ---
+mask_1fd = (fft_freqs > f1 - 7500) & (fft_freqs < f1 + 7500)
+fig.add_trace(go.Scatter(x=fft_freqs[mask_1fd], y=fft_vals[mask_1fd],
+                         mode='lines', name='FFT around 1fd'), row=2, col=1)
+
+# --- Plot 3: FFT near 2fd ---
+mask_2fd = (fft_freqs > f2 - 7500) & (fft_freqs < f2 + 7500)
+fig.add_trace(go.Scatter(x=fft_freqs[mask_2fd], y=fft_vals[mask_2fd],
+                         mode='lines', name='FFT around 2fd'), row=3, col=1)
+
+# --- Layout Settings ---
+fig.update_xaxes(title_text="Time (s)", row=1, col=1)
+fig.update_yaxes(title_text="Velocity (m/s)", row=1, col=1)
+
+fig.update_xaxes(title_text="Frequency (Hz)", row=2, col=1)
+fig.update_yaxes(title_text="Amplitude (a in m/s²)", row=2, col=1)
+
+fig.update_xaxes(title_text="Frequency (Hz)", row=3, col=1)
+fig.update_yaxes(title_text="Amplitude (a in m/s²)", row=3, col=1)
+
+fig.update_layout(height=900, width=1000, title_text="Vibration Analysis Results")
+fig.show()
