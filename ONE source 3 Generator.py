@@ -9,6 +9,9 @@ from sklearn.linear_model import LinearRegression
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 
+#generated data storage
+output_file = "biogas_optimization_results.csv"
+
 # Constants
 C_t = 1.0  # Cost per unit of time, fixed operational cost
 lambda_penalty = 0.001  # Penalty scaling factor
@@ -107,17 +110,17 @@ bounds = (lb, ub)
 
 # Use PSO to minimize the fitness function
 options = {'c1': 1.5, 'c2': 2, 'w': 0.4}
-optimizer = ps.single.GlobalBestPSO(n_particles=1000, dimensions=num_intervals, options=options, bounds=bounds)
-best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=50)
+optimizer = ps.single.GlobalBestPSO(n_particles=1000, dimensions=num_intervals, options=options, bounds=bounds)  # we can change the number of particles here to num_intervals*2
+best_cost, optimal_profile = optimizer.optimize(fitness_function, iters=150)
 
-# Debug: Print shape of optimal_profile
-print(f"Shape of optimal_profile before conversion: {np.shape(optimal_profile)}")
+# # Debug: Print shape of optimal_profile
+# print(f"Shape of optimal_profile before conversion: {np.shape(optimal_profile)}")
 
 # Ensure optimal_profile is treated as a numpy array and has the correct shape
 optimal_profile = np.array(optimal_profile)
 
-# Debug: Print shape of optimal_profile after conversion
-print(f"Shape of optimal_profile after conversion: {optimal_profile.shape}")
+# # Debug: Print shape of optimal_profile after conversion
+# print(f"Shape of optimal_profile after conversion: {optimal_profile.shape}")
 
 # Check if the shape is correct, otherwise print an error message
 if optimal_profile.shape[0] != num_intervals:
@@ -164,15 +167,17 @@ else:
 
         individual_power_generated_list.append(', '.join(map(str, individual_power_generated)))
 
-        load_factor_list.append(load_factor)
-        height -= total_gas_consumed
-        height += deltaH_source
-        height = np.clip(height, 0, H_max)
-
         penalty = penalty_smooth(height, H_min, H_max, H_low, H_high, A=lambda_penalty)
         revenue = market_price * total_power_generated
         total_cycle_cost = penalty + cycle_cost - revenue
         total_cost_list.append(total_cycle_cost)
+        load_factor_list.append(load_factor)
+
+        height -= total_gas_consumed
+        height += deltaH_source
+        height = np.clip(height, 0, H_max)
+
+        
 
         data.at[i, 'Height'] = height
         power_generated_list.append(total_power_generated)
@@ -197,50 +202,21 @@ else:
     plt.xlabel('Iteration')
     plt.ylabel('Cost')
     plt.grid(True)
+    plt.savefig('Cost_vs_Optimization_Iterations.png')
     plt.show()
     
-    # Visualization of Particle Convergence
+
+    # Plot efficiency vs. load factor
     plt.figure(figsize=(12, 8))
-    for pos in optimizer.pos_history:
-        plt.plot(np.mean(pos, axis=1), marker='o', markersize=3, linestyle='-', alpha=0.5)
-    
-    plt.title('Particle Positions Over Iterations')
-    plt.xlabel('Iteration')
-    plt.ylabel('Particle Position (mean)')
+    plt.plot(load_factors, efficiencies, label='Efficiency Curve', color='blue', lw=2)
+    plt.title('Efficiency vs. Load Factor', fontsize=14)
+    plt.xlabel('Load Factor', fontsize=12)
+    plt.ylabel('Efficiency', fontsize=12)
     plt.grid(True)
-    plt.show()
-    # Histogram of Particle Positions
-    plt.figure(figsize=(12, 8))
-    for i in range(0, len(optimizer.pos_history), len(optimizer.pos_history) // 5):
-        plt.hist(optimizer.pos_history[i].flatten(), bins=50, alpha=0.5, label=f'Iteration {i}')
-    plt.title('Histogram of Particle Positions Across Iterations')
-    plt.xlabel('Particle Position')
-    plt.ylabel('Frequency')
     plt.legend()
-    plt.grid(True)
+    plt.savefig('Efficiency_vs_Load_Factor.png')
     plt.show()
-    
-    # 2D Scatter Plot of Particles (for 2D problems)
-    plt.figure(figsize=(12, 8))
-    for i in range(len(optimizer.pos_history)):
-        plt.scatter(optimizer.pos_history[i][:, 0], optimizer.pos_history[i][:, 1], alpha=0.3, label=f'Iteration {i}' if i % (len(optimizer.pos_history) // 5) == 0 else "")
-    plt.title('Particle Movement Across Iterations')
-    plt.xlabel('Position Dimension 1')
-    plt.ylabel('Position Dimension 2')
-    plt.legend()
-    plt.grid(True)
-    plt.show()
-    
-    # Particle Position Heatmap
-    particle_positions_mean = np.mean(np.array(optimizer.pos_history), axis=2)  # Mean position across particles
-    plt.figure(figsize=(12, 8))
-    plt.imshow(particle_positions_mean.T, aspect='auto', cmap='viridis')
-    plt.colorbar(label='Mean Particle Position')
-    plt.title('Heatmap of Particle Position Mean Across Iterations')
-    plt.xlabel('Iteration')
-    plt.ylabel('Dimension')
-    plt.show()
-    
+        
     # Line Plot of Particle Spread Over Iterations
     particle_spread = [np.std(pos) for pos in optimizer.pos_history]
     plt.figure(figsize=(12, 8))
@@ -249,17 +225,31 @@ else:
     plt.xlabel('Iteration')
     plt.ylabel('Particle Spread (Std Dev)')
     plt.grid(True)
+    plt.savefig('Particle_Spread_Over_Iterations.png')
     plt.show()
 
     # Visualization of Height and Total Cost
     plt.figure(figsize=(12, 8))
     plt.scatter(data['Height'], data['Penalty'], color='red')
-    plt.title('Relationship between Height and Penality')
+    plt.title('Relationship between Height and Penalty')
     plt.xlabel('Tank Height (units)')
-    plt.ylabel('Total Cost ($)')
+    plt.ylabel('Penalty')
     plt.grid(True)
+    plt.savefig('Relationship_between_Height_and_Penalty.png')
     plt.show()
 
     # Displaying cycle details in tabular format
-    print(tabulate(data[['Cycle', 'Market_Price', 'Height', 'Load_Factor', 'Power_Generated', 'Penalty', 'Generator_On', 'Total_Cost']],
+    print(tabulate(data[['Cycle', 'Market_Price', 'Height', 'Load_Factor', 'Power_Generated', 'Penalty', 'Generator_On', 'Individual_Power_Generated', 'Total_Cost']],
                    headers='keys', tablefmt='psql', showindex=False))
+    # Save the relevant data to a CSV file
+    data[['Cycle', 'Market_Price', 'Height', 'Load_Factor', 'Power_Generated', 
+      'Penalty', 'Generator_On', 'Individual_Power_Generated', 'Total_Cost']].to_csv(output_file, index=False)
+
+
+    
+
+
+
+
+
+    
